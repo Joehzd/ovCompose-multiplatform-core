@@ -37,6 +37,7 @@ sealed class Brush {
      * single dimension, return [Size] with [Float.NaN] in the desired dimension.
      */
     open val intrinsicSize: Size = Size.Unspecified
+    open var useSkia: Boolean = false
 
     abstract fun applyTo(size: Size, p: Paint, alpha: Float)
 
@@ -480,6 +481,7 @@ internal constructor(
             from = Offset(startX, startY),
             to = Offset(endX, endY),
             tileMode = tileMode,
+            forceUseSkia = useSkia
         )
     }
 

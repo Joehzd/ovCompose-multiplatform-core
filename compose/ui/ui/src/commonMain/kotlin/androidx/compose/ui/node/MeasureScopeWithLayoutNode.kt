@@ -44,5 +44,8 @@ private fun LayoutNode.isInLookaheadPass(): Boolean {
             // idle means intrinsics are being asked, we need to check the parent
             requireNotNull(parent) { "no parent for idle node" }.isInLookaheadPass()
         }
+        // region Tencent Code
+        else -> throw IllegalArgumentException("Invalid state: $layoutState")
+        // endregion
     }
 }

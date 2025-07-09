@@ -19,6 +19,7 @@ package androidx.compose.foundation.gestures
 import androidx.compose.foundation.ComposeFoundationFlags.isDetectTapGesturesImmediateCoroutineDispatchEnabled
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.internal.JvmDefaultWithCompatibility
+import androidx.compose.runtime.CrashReporter
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.PointerEvent
@@ -40,9 +41,13 @@ import androidx.compose.ui.util.fastForEach
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CompletionHandlerException
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.withContext
 
 /**
  * Receiver scope for [detectTapGestures]'s `onPress` lambda. This offers two methods to allow
@@ -492,7 +497,23 @@ internal class PressGestureScopeImpl(density: Density) : PressGestureScope, Dens
     private var isCanceled = false
     private val mutex = Mutex(locked = false)
 
-    /** Called when a gesture has been canceled. */
+    // region Tencent Code: Handle 'kotlin.IllegalStateException: This mutex is not locked'
+    @OptIn(InternalCoroutinesApi::class)
+    private val exceptionHandler = CoroutineExceptionHandler { coroutineContext, e ->
+        if (e is CompletionHandlerException) {
+            val rootCause = e.rootCause()
+            if (rootCause is IllegalStateException &&
+                rootCause.message?.contains("This mutex is not locked") == true
+            ) {
+                CrashReporter.reportThrowable(e)
+            }
+        }
+    }
+    // endregion
+
+    /**
+     * Called when a gesture has been canceled.
+     */
     fun cancel() {
         isCanceled = true
         if (mutex.isLocked) {
@@ -510,7 +531,11 @@ internal class PressGestureScopeImpl(density: Density) : PressGestureScope, Dens
 
     /** Called when a new gesture has started. */
     suspend fun reset() {
-        mutex.lock()
+        // region Tencent Code
+        withContext(exceptionHandler) {
+            mutex.lock()
+        }
+        // endregion
         isReleased = false
         isCanceled = false
     }
@@ -523,9 +548,23 @@ internal class PressGestureScopeImpl(density: Density) : PressGestureScope, Dens
 
     override suspend fun tryAwaitRelease(): Boolean {
         if (!isReleased && !isCanceled) {
-            mutex.lock()
-            mutex.unlock()
+            // region Tencent Code
+            withContext(exceptionHandler) {
+                mutex.lock()
+                mutex.unlock()
+            }
+            // endregion
         }
         return isReleased
     }
 }
+
+// region Tencent Code
+private fun Throwable.rootCause(): Throwable? {
+    var t: Throwable? = this
+    while (t?.cause != null) {
+        t = t.cause
+    }
+    return t
+}
+// endregion

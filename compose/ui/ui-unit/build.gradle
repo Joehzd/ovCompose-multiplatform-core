@@ -60,10 +60,11 @@ if(!AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
     androidXComposeMultiplatform {
         android()
-        desktop()
+//        desktop()
         darwin()
-        js()
-        wasm()
+//        js()
+//        wasm()
+        ohos()
     }
 
     kotlin {
@@ -80,6 +81,8 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation(project(":annotation:annotation"))
                 implementation(project(":compose:runtime:runtime"))
                 implementation(project(":compose:ui:ui-util"))
+                implementation(project(":collection:collection"))
+                implementation(project(":annotation:annotation"))
             }
             jvmMain.dependencies {
                 implementation(libs.kotlinStdlib)
@@ -89,21 +92,21 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             }
 
             nonAndroidMain.dependsOn(commonMain)
-            desktopMain.dependsOn(nonAndroidMain)
+//            desktopMain.dependsOn(nonAndroidMain)
             nonJvmMain.dependsOn(nonAndroidMain)
-            jsMain.dependsOn(nonJvmMain)
+//            jsMain.dependsOn(nonJvmMain)
             nativeMain.dependsOn(nonJvmMain)
-
-            jsMain {
-                dependsOn(nonJvmMain)
-            }
-
-            wasmJsMain {
-                dependsOn(nonJvmMain)
-                dependencies {
-                    implementation(libs.kotlinStdlib)
-                }
-            }
+            ohosArm64Main.dependsOn(nativeMain)
+//            jsMain {
+//                dependsOn(nonJvmMain)
+//            }
+//
+//            wasmJsMain {
+//                dependsOn(nonJvmMain)
+//                dependencies {
+//                    implementation(libs.kotlinStdlib)
+//                }
+//            }
 
             commonTest.dependencies {
                 implementation(libs.kotlinTest)
@@ -124,14 +127,14 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation(libs.espressoCore)
             }
 
-            desktopTest {
-                dependencies {
-                    implementation(libs.junit)
-                    implementation(libs.truth)
-                    implementation(libs.kotlinTest)
-                }
-            }
-            desktopTest.kotlin.srcDirs("src/test/kotlin")
+//            desktopTest {
+//                dependencies {
+//                    implementation(libs.junit)
+//                    implementation(libs.truth)
+//                    implementation(libs.kotlinTest)
+//                }
+//            }
+//            desktopTest.kotlin.srcDirs("src/test/kotlin")
         }
     }
     dependencies {

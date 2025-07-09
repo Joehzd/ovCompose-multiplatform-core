@@ -17,6 +17,8 @@
 package androidx.compose.material3.internal
 
 import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.style.LineHeightStyle
 
 /** Returns Default [PlatformTextStyle]. */
 internal expect fun defaultPlatformTextStyle(): PlatformTextStyle?
+internal expect fun defaultLineHeightStyleTrim(): LineHeightStyle.Trim

@@ -18,9 +18,19 @@ package androidx.compose.foundation.text.modifiers
 
 import androidx.compose.foundation.internal.requirePreconditionNotNull
 import androidx.compose.foundation.text.DefaultMinLines
+import androidx.compose.runtime.ComposeTabService
+import androidx.compose.runtime.EnableIOSParagraph
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorProducer
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
@@ -41,6 +51,7 @@ import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.invalidateLayer
 import androidx.compose.ui.node.invalidateMeasurement
 import androidx.compose.ui.node.invalidateSemantics
+import androidx.compose.ui.platform.PlatformTextNodeFactory
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.clearTextSubstitution
 import androidx.compose.ui.semantics.getTextLayoutResult
@@ -50,6 +61,7 @@ import androidx.compose.ui.semantics.showTextSubstitution
 import androidx.compose.ui.semantics.text
 import androidx.compose.ui.semantics.textSubstitution
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.Paragraph
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -85,6 +97,15 @@ internal class TextStringSimpleNode(
     // Usages of this collection are so few that the gains of using
     // MutableObjectIntMap<AlignmentLine> and then converting to a Map<AlignmentLine, Int>
     // as needed for the public API is not worth the performance benefit.
+    // region Tencent Code
+    /**
+     * 平台文本的代理接口，用于代理原本Paragraph的实现
+     */
+    private val platformTextDelegate =
+        PlatformTextNodeFactory.instance.createPlatformDelegateTextNode()
+    private var localBitmap: ImageBitmap? = null
+    private var localCanvas: Canvas? = null
+    // endregion
     private var baselineCache: MutableMap<AlignmentLine, Int>? = null
 
     private var _layoutCache: ParagraphLayoutCache? = null
@@ -410,6 +431,90 @@ internal class TextStringSimpleNode(
         measurable: IntrinsicMeasurable,
         width: Int,
     ): Int = getLayoutCacheForMeasure().intrinsicHeight(width, layoutDirection)
+        width: Int
+    ): Int =
+        getLayoutCache(this).intrinsicHeight(width, layoutDirection)
+
+    // region Tencent Code
+    private fun ensureTextBitmap() {
+        val newBitmap = ImageBitmap(layoutCache.layoutSize.width, layoutCache.layoutSize.height)
+        localCanvas = Canvas(newBitmap)
+        localBitmap = newBitmap
+    }
+
+    private inline fun ContentDrawScope.asyncDrawIntoCanvas(localParagraph: Paragraph) {
+        drawIntoCanvas { canvas ->
+            val currentParagraphHashCode = paragraphHashCode()
+            if (platformTextDelegate?.needRedrawText(
+                    nativeCanvas = canvas,
+                    paragraphHashKey = currentParagraphHashCode,
+                    width = layoutCache.layoutSize.width,
+                    height = layoutCache.layoutSize.height
+                ) == false
+            ) return
+
+            val willClip = layoutCache.didOverflow
+            val layoutSizeWidth = layoutCache.layoutSize.width
+            val layoutSizeHeight = layoutCache.layoutSize.height
+
+            val globalTask: () -> Long = {
+                val newBitmap = ImageBitmap(layoutSizeWidth, layoutSizeHeight)
+                val renderCanvas = Canvas(newBitmap)
+                if (willClip) {
+                    val bounds = Rect(Offset.Zero, Size(layoutSizeWidth.toFloat(), layoutSizeHeight.toFloat()))
+                    renderCanvas.save()
+                    renderCanvas.clipRect(bounds)
+                }
+                try {
+                    val textDecoration = style.textDecoration ?: TextDecoration.None
+                    val shadow = style.shadow ?: Shadow.None
+                    val drawStyle = style.drawStyle ?: Fill
+                    val brush = style.brush
+                    if (brush != null) {
+                        val alpha = style.alpha
+                        localParagraph.paint(
+                            canvas = renderCanvas,
+                            brush = brush,
+                            alpha = alpha,
+                            shadow = shadow,
+                            drawStyle = drawStyle,
+                            textDecoration = textDecoration
+                        )
+                    } else {
+                        val overrideColorVal = overrideColor?.invoke() ?: Color.Unspecified
+                        val color = if (overrideColorVal.isSpecified) {
+                            overrideColorVal
+                        } else if (style.color.isSpecified) {
+                            style.color
+                        } else {
+                            Color.Black
+                        }
+                        localParagraph.paint(
+                            canvas = renderCanvas,
+                            color = color,
+                            shadow = shadow,
+                            drawStyle = drawStyle,
+                            textDecoration = textDecoration
+                        )
+                    }
+                    platformTextDelegate?.imageFromImageBitmap(canvas, currentParagraphHashCode, newBitmap) ?: 0
+                } finally {
+                    if (willClip) {
+                        renderCanvas.restore()
+                    }
+                }
+            }
+
+            platformTextDelegate?.asyncDrawIntoCanvas(
+                canvas,
+                globalTask,
+                currentParagraphHashCode,
+                layoutSizeWidth,
+                layoutSizeHeight
+            )
+        }
+    }
+    // endregion
 
     /** Optimized Text draw. */
     override fun ContentDrawScope.draw() {
@@ -418,13 +523,32 @@ internal class TextStringSimpleNode(
             return
         }
 
-        val layoutCache = getLayoutCache()
-        val localParagraph =
-            requirePreconditionNotNull(layoutCache.paragraph) {
-                "Internal Error: ParagraphLayoutCache could not provide a Paragraph during the draw phase. Please report this bug on the official Issue Tracker with the following diagnostic information: (layoutCache=$_layoutCache, textSubstitution=$textSubstitution)"
-            }
-
+        val localParagraph = requireNotNull(layoutCache.paragraph) { "no paragraph" }
+        // region Tencent Code
+        if (ComposeTabService.textAsyncPaint && !drawInSkia) {
+            asyncDrawIntoCanvas(localParagraph)
+            return
+        }
+        // endregion
         drawIntoCanvas { canvas ->
+            var currentParagraphHashCode = 0
+            // region Tencent Code
+            if (drawInSkia || EnableIOSParagraph) {
+                localCanvas = canvas
+            } else {
+                currentParagraphHashCode = paragraphHashCode()
+                if (platformTextDelegate?.needRedrawText(
+                        nativeCanvas = canvas,
+                        paragraphHashKey = currentParagraphHashCode,
+                        width = layoutCache.layoutSize.width,
+                        height = layoutCache.layoutSize.height
+                    ) == false
+                ) return
+                ensureTextBitmap()
+            }
+            // endregion
+
+            val renderCanvas = localCanvas!!
             val willClip = layoutCache.didOverflow
             if (willClip) {
                 val width = layoutCache.layoutSize.width.toFloat()
@@ -465,6 +589,19 @@ internal class TextStringSimpleNode(
                         textDecoration = textDecoration,
                     )
                 }
+                // region Tencent Code
+                if (!drawInSkia && !EnableIOSParagraph) {
+                    platformTextDelegate?.renderTextImage(
+                        imageBitmap = localBitmap,
+                        width = layoutCache.layoutSize.width,
+                        height = layoutCache.layoutSize.height,
+                        paragraphHashCode = currentParagraphHashCode,
+                        nativeCanvas = canvas
+                    )
+                    localBitmap = null
+                    localCanvas = null
+                }
+                // endregion
             } finally {
                 if (willClip) {
                     canvas.restore()
@@ -472,4 +609,26 @@ internal class TextStringSimpleNode(
             }
         }
     }
+    private fun paragraphHashCode(): Int {
+        var result = text.hashCode()
+        result = 31 * result + style.hashCode()
+        result = 31 * result + overflow.hashCode()
+        result = 31 * result + softWrap.hashCode()
+        result = 31 * result + maxLines
+        result = 31 * result + minLines
+        result = 31 * result + (layoutCache.layoutSize.hashCode() ?: 0)
+        if (style.brush == null) {
+            val overrideColorVal = overrideColor?.invoke() ?: Color.Unspecified
+            val color = if (overrideColorVal.isSpecified) {
+                overrideColorVal
+            } else if (style.color.isSpecified) {
+                style.color
+            } else {
+                Color.Black
+            }
+            result = 31 * result + color.hashCode()
+        }
+        return result
+    }
+    // endregion
 }

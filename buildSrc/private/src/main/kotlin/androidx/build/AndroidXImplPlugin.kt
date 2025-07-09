@@ -122,7 +122,7 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
             }
         }
 
-        project.configureKtlint()
+//        project.configureKtlint()
         project.configureKotlinStdlibVersion()
 
         // Configure all Jar-packing tasks for hermetic builds.
@@ -167,15 +167,16 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
 //            }
 //        }
 
-        @OptIn(ExperimentalKotlinGradlePluginApi::class)
-        project.pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
-            project.extensions.configure(KotlinMultiplatformExtension::class.java) {
-                it.compilerOptions {
-                    languageVersion.set(KotlinVersion.KOTLIN_2_0)
-                    apiVersion.set(KotlinVersion.KOTLIN_2_0)
-                }
-            }
-        }
+        // 删了？？？？
+//        @OptIn(ExperimentalKotlinGradlePluginApi::class)
+//        project.pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
+//            project.extensions.configure(KotlinMultiplatformExtension::class.java) {
+//                it.compilerOptions {
+//                    languageVersion.set(KotlinVersion.KOTLIN_2_0)
+//                    apiVersion.set(KotlinVersion.KOTLIN_2_0)
+//                }
+//            }
+//        }
 
     }
 

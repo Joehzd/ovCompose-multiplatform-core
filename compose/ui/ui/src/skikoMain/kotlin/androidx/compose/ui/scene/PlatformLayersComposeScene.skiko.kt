@@ -27,6 +27,7 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.pointer.PointerInputEvent
 import androidx.compose.ui.input.rotary.RotaryScrollEvent
 import androidx.compose.ui.node.LayoutNode
+import androidx.compose.ui.node.OwnedLayerFactory
 import androidx.compose.ui.node.RootNodeOwner
 import androidx.compose.ui.platform.setContent
 import androidx.compose.ui.unit.Constraints
@@ -37,6 +38,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.viewinterop.InteropView
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.Dispatchers
+import kotlin.coroutines.CoroutineContext
 
 /**
  * Constructs a single-layer [ComposeScene] using the specified parameters. It utilizes
@@ -155,6 +157,27 @@ private class PlatformLayersComposeSceneImpl(
         check(!isClosed) { "invalidatePositionOnScreen called after ComposeScene is closed" }
         mainOwner.invalidatePositionOnScreen()
     }
+
+
+    // region Tencent Code
+    override fun setLayerFactory(factory: OwnedLayerFactory) {
+        mainOwner.layerFactory = factory
+    }
+
+    override fun outerContainerOffsetChange(x: Float, y: Float) {
+        mainOwner.outerContainerOffsetChange(x, y)
+    }
+
+    override fun getMeasuredContentSize(): IntSize {
+        check(!isClosed) { "ComposeScene is closed" }
+        // Don't use mainOwner.root.width here, as it strictly coerced by [constraints]
+        val children = mainOwner.owner.root.children
+        return IntSize(
+            width = children.maxOfOrNull { it.outerCoordinator.measuredWidth } ?: 0,
+            height = children.maxOfOrNull { it.outerCoordinator.measuredHeight } ?: 0,
+        )
+    }
+    // endregion
 
     override fun createComposition(content: @Composable () -> Unit): Composition {
         return mainOwner.setContent(

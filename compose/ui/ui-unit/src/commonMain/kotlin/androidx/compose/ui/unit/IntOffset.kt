@@ -168,3 +168,12 @@ fun lerp(start: IntOffset, stop: IntOffset, fraction: Float): IntOffset =
 
 /** Round a [Offset] down to the nearest [Int] coordinates. */
 @Stable fun Offset.round(): IntOffset = IntOffset(packInts(x.fastRoundToInt(), y.fastRoundToInt()))
+
+// region Tencent Code
+/**
+ * Round a [Offset] down to the nearest [Int] coordinates.
+ */
+@Stable
+inline fun Offset.safeRound(): IntOffset =
+    IntOffset(if (x.isNaN()) 0 else x.roundToInt(), if (y.isNaN()) 0 else y.roundToInt())
+// endregion

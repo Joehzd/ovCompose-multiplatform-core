@@ -27,6 +27,7 @@ import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.foundation.text.selection.SelectionRegistrar
 import androidx.compose.foundation.text.selection.hasSelection
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DeleteRedundantGraphicsLayer
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.NonRestartableComposable
 import androidx.compose.runtime.getValue

@@ -107,6 +107,8 @@ internal class LayoutNode(
 
     internal var isVirtualLookaheadRoot: Boolean = false
 
+    var drawInSkia: Boolean = false
+
     /**
      * This lookaheadRoot references the closest root to the LayoutNode, not the top-level lookahead
      * root.
@@ -225,7 +227,10 @@ internal class LayoutNode(
     internal val parent: LayoutNode?
         get() {
             var parent = _foldedParent
-            while (parent?.isVirtual == true) {
+            // region Tencent Code: Avoid boxing.
+            // while (parent?.isVirtual == true) {
+            while (parent != null && parent.isVirtual) {
+            // endregion
                 parent = parent._foldedParent
             }
             return parent
@@ -518,7 +523,9 @@ internal class LayoutNode(
 
         // Use the inner coordinator of first non-virtual parent
         outerCoordinator.wrappedBy = parent?.innerCoordinator
-
+        // region Tencent Code
+        this.drawInSkia = owner.drawInSkia
+        // endregion
         this.owner = owner
         this.depth = (parent?.depth ?: -1) + 1
 

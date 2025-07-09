@@ -174,3 +174,10 @@ androidx {
     description = "Internal iOS UIKit utilities including Objective-C library."
     legacyDisableKotlinStrictApiMode = true
 }
+
+def resolveXcodeConfiguration() {
+    // Set XCODE_CONFIGURATION to Debug to allow breakpoint in the Objective-C source code.
+    def xcodeConfiguration = project.findProperty("XCODE_CONFIGURATION") ?:
+            gradle.parent?.rootProject?.findProperty("XCODE_CONFIGURATION") ?: "Release"
+    return xcodeConfiguration
+}

@@ -21,6 +21,9 @@ pluginManagement {
         gradlePluginPortal().content {
             it.includeModule("org.jetbrains.kotlin.jvm", "org.jetbrains.kotlin.jvm.gradle.plugin")
         }
+        maven {
+            url = "https://mirrors.tencent.com/nexus/repository/maven-public"
+        }
     }
 }
 
@@ -35,6 +38,9 @@ dependencyResolutionManagement {
             it.includeModule("com.github.johnrengelman.shadow",
                     "com.github.johnrengelman.shadow.gradle.plugin")
             it.includeModule("com.github.johnrengelman", "shadow")
+        }
+        maven {
+            url = "https://mirrors.tencent.com/nexus/repository/maven-public"
         }
     }
 }

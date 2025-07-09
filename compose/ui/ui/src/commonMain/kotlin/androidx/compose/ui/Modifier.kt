@@ -16,6 +16,7 @@
 
 package androidx.compose.ui
 
+import androidx.compose.runtime.ComposeEnableCachedThrowable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.internal.JvmDefaultWithCompatibility
 import androidx.compose.ui.internal.PlatformOptimizedCancellationException
@@ -68,6 +69,9 @@ internal class ModifierNodeDetachedCancellationException :
  *
  * @sample androidx.compose.ui.samples.SubcomponentModifierSample
  */
+
+private val CachedModifierNodeDetachedCancellationException = ModifierNodeDetachedCancellationException()
+
 @Suppress("ModifierFactoryExtensionFunction")
 @Stable
 @JvmDefaultWithCompatibility
@@ -292,7 +296,7 @@ interface Modifier {
             isAttached = false
 
             scope?.let {
-                it.cancel(ModifierNodeDetachedCancellationException())
+                it.cancel(if (ComposeEnableCachedThrowable) CachedModifierNodeDetachedCancellationException else null)
                 scope = null
             }
         }

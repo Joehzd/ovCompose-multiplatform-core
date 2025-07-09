@@ -105,4 +105,10 @@ internal interface OwnedLayer {
      * transform.
      */
     fun inverseTransform(matrix: Matrix)
+
+    //region iOS Binding
+    fun setPlaced(isPlaced: Boolean) = Unit
+
+    fun updateParentLayer(parentLayer: OwnedLayer?) = Unit
+    //endregion
 }

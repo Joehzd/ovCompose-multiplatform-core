@@ -33,6 +33,7 @@ val libraryToComponents = mapOf(
         ComposeComponent(":compose:animation:animation"),
         ComposeComponent(":compose:animation:animation-core"),
         ComposeComponent(":compose:animation:animation-graphics"),
+        ComposeComponent(":compose:export:export"),
         ComposeComponent(":compose:foundation:foundation"),
         ComposeComponent(":compose:foundation:foundation-layout"),
         ComposeComponent(":compose:material:material"),
@@ -58,14 +59,18 @@ val libraryToComponents = mapOf(
             supportedPlatforms = ComposePlatforms.JVM_BASED
         ),
         ComposeComponent(":compose:ui:ui-text"),
-        ComposeComponent(":compose:ui:ui-tooling", supportedPlatforms = ComposePlatforms.JVM_BASED),
+//        ComposeComponent(":compose:ui:ui-tooling", supportedPlatforms = ComposePlatforms.JVM_BASED),
+//        ComposeComponent(
+//            ":compose:ui:ui-tooling-data",
+//            supportedPlatforms = ComposePlatforms.JVM_BASED
+//        ),
+//        ComposeComponent(
+//            ":compose:ui:ui-tooling-preview",
+//            supportedPlatforms = ComposePlatforms.JVM_BASED
+//        ),
         ComposeComponent(
-            ":compose:ui:ui-tooling-data",
-            supportedPlatforms = ComposePlatforms.JVM_BASED
-        ),
-        ComposeComponent(
-            ":compose:ui:ui-tooling-preview",
-            supportedPlatforms = ComposePlatforms.JVM_BASED
+            ":compose:ui:ui-arkui",
+            supportedPlatforms = ComposePlatforms.OHOS
         ),
         ComposeComponent(
             ":compose:ui:ui-uikit",

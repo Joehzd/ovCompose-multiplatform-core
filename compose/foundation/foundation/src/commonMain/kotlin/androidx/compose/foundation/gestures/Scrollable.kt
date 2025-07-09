@@ -68,6 +68,10 @@ import androidx.compose.ui.node.TraversableNode
 import androidx.compose.ui.node.dispatchOnScrollChanged
 import androidx.compose.ui.node.invalidateSemantics
 import androidx.compose.ui.node.requireDensity
+import androidx.compose.ui.node.ObserverModifierNode
+import androidx.compose.ui.node.TraversableNode
+import androidx.compose.ui.node.currentValueOf
+import androidx.compose.ui.node.observeReads
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
@@ -258,7 +262,19 @@ private class ScrollableElement(
         properties["bringIntoViewSpec"] = bringIntoViewSpec
     }
 }
+// region Tencent Code
+/**
+ * Expose ScrollableState
+ */
+interface ScrollableStateNode : TraversableNode {
 
+    override val traverseKey: Key
+
+    val state: ScrollableState
+
+    interface Key
+}
+// endregion
 internal class ScrollableNode(
     state: ScrollableState,
     private var overscrollEffect: OverscrollEffect?,
@@ -277,7 +293,8 @@ internal class ScrollableNode(
     ),
     KeyInputModifierNode,
     SemanticsModifierNode,
-    CompositionLocalConsumerModifierNode,
+    /* Tencent Code { */ ScrollableStateNode /* } */,
+CompositionLocalConsumerModifierNode,
     OnScrollChangedDispatcher {
 
     override val shouldAutoInvalidate: Boolean = false
@@ -372,6 +389,10 @@ internal class ScrollableNode(
 
         mouseWheelScrollingLogic?.startReceivingMouseWheelEvents(coroutineScope)
     }
+
+    // region Tencent Code
+    override val traverseKey: TraverseKey get() = TraverseKey
+    // endregion
 
     fun update(
         state: ScrollableState,
@@ -490,7 +511,9 @@ internal class ScrollableNode(
     }
 
     override fun onPreKeyEvent(event: KeyEvent) = false
-
+    // region Tencent Code
+    object TraverseKey : ScrollableStateNode.Key
+    // endregion
     // Forward all PointerInputModifierNode method calls to `mmouseWheelScrollNode.pointerInputNode`
     // See explanation in `MouseWheelScrollNode.pointerInputNode`
 

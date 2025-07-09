@@ -36,6 +36,10 @@ import androidx.compose.runtime.collection.MultiValueMap
 import androidx.compose.runtime.collection.ScopeMap
 import androidx.compose.runtime.collection.fastFilter
 import androidx.compose.runtime.collection.sortedBy
+import androidx.compose.runtime.collection.IdentityArrayMap
+import androidx.compose.runtime.collection.IdentityArraySet
+import androidx.compose.runtime.collection.IntMap
+import androidx.compose.runtime.inspection.RecompositionHandlerFactory
 import androidx.compose.runtime.internal.IntRef
 import androidx.compose.runtime.internal.invokeComposable
 import androidx.compose.runtime.internal.persistentCompositionLocalHashMapOf
@@ -1196,6 +1200,21 @@ sealed interface Composer {
      */
     fun collectParameterInformation()
 
+    // region Tencent Code
+    /**
+     * A tooling API function. DO NOT call directly.
+     *
+     * Called by the inspector to inform the composer that it should collect additional
+     * information about call parameters. By default, only collect parameter information for
+     * scopes that are [recordUsed] has been called on. If [collectParameterInformation] is called
+     * it will attempt to collect all calls even if the runtime doesn't need them.
+     *
+     * WARNING: calling this will result in a significant number of additional allocations that are
+     * typically avoided.
+     */
+    fun recordParameterInformation()
+    // endregion
+
     /**
      * A Compose internal function. DO NOT call directly.
      *
@@ -1483,6 +1502,9 @@ internal class ComposerImpl(
     private val changeListWriter = ComposerChangeListWriter(this, changes)
     private var insertAnchor: Anchor = insertTable.read { it.anchor(0) }
     private var insertFixups = FixupList()
+    // region Tencent Code
+    internal var recompositionHandler = RecompositionHandlerFactory.create(this)
+    // endregion
 
     private var pausable: Boolean = false
     private var shouldPauseCallback: ShouldPauseCallback? = null
@@ -1775,11 +1797,17 @@ internal class ComposerImpl(
     @ComposeCompilerApi
     override val skipping: Boolean
         get() {
-            return !inserting &&
-                !reusing &&
+            /*return !inserting && !reusing &&
                 !providersInvalid &&
                 currentRecomposeScope?.requiresRecompose == false &&
-                !forciblyRecompose
+                !forciblyRecompose*/
+
+            // region Tencent Code
+            return (!inserting && !reusing &&
+                !providersInvalid &&
+                currentRecomposeScope?.requiresRecompose == false &&
+                !forciblyRecompose).also { recompositionHandler.skipping(it, this) }
+            // endregion
         }
 
     /**
@@ -1802,6 +1830,12 @@ internal class ComposerImpl(
         insertTable.collectSourceInformation()
         writer.updateToTableMaps()
     }
+
+    // region Tencent Code
+    override fun recordParameterInformation() {
+        sourceInformationEnabled = true
+    }
+    // endregion
 
     @OptIn(InternalComposeApi::class)
     internal fun dispose() {
@@ -2028,22 +2062,43 @@ internal class ComposerImpl(
      */
     @ComposeCompilerApi
     override fun changed(value: Any?): Boolean {
-        return if (nextSlot() != value) {
+        /*return if (nextSlot() != value) {
+            updateValue(value)
+            true
+        } else {
+            false
+        }*/
+
+        // region Tencent Code
+        val next = nextSlot()
+        return if (next != value) {
+            recompositionHandler.change(next, value, this)
             updateValue(value)
             true
         } else {
             false
         }
+        // endregion
     }
 
     @ComposeCompilerApi
     override fun changedInstance(value: Any?): Boolean {
-        return if (nextSlot() !== value) {
+        /*return if (nextSlot() !== value) {
+            updateValue(value)
+            true
+        } else {
+            false
+        }*/
+        // region Tencent Code
+        val next = nextSlot()
+        return if (next !== value) {
+            recompositionHandler.changedInstance(next, value, this)
             updateValue(value)
             true
         } else {
             false
         }
+        // endregion
     }
 
     @ComposeCompilerApi
@@ -2053,6 +2108,9 @@ internal class ComposerImpl(
             val nextPrimitive: Char = next
             if (value == nextPrimitive) return false
         }
+        // region Tencent Code
+        recompositionHandler.change(next, value, this)
+        // endregion
         updateValue(value)
         return true
     }
@@ -2064,6 +2122,9 @@ internal class ComposerImpl(
             val nextPrimitive: Byte = next
             if (value == nextPrimitive) return false
         }
+        // region Tencent Code
+        recompositionHandler.change(next, value, this)
+        // endregion
         updateValue(value)
         return true
     }
@@ -2075,6 +2136,9 @@ internal class ComposerImpl(
             val nextPrimitive: Short = next
             if (value == nextPrimitive) return false
         }
+        // region Tencent Code
+        recompositionHandler.change(next, value, this)
+        // endregion
         updateValue(value)
         return true
     }
@@ -2086,6 +2150,9 @@ internal class ComposerImpl(
             val nextPrimitive: Boolean = next
             if (value == nextPrimitive) return false
         }
+        // region Tencent Code
+        recompositionHandler.change(next, value, this)
+        // endregion
         updateValue(value)
         return true
     }
@@ -2097,6 +2164,9 @@ internal class ComposerImpl(
             val nextPrimitive: Float = next
             if (value == nextPrimitive) return false
         }
+        // region Tencent Code
+        recompositionHandler.change(next, value, this)
+        // endregion
         updateValue(value)
         return true
     }
@@ -2108,6 +2178,9 @@ internal class ComposerImpl(
             val nextPrimitive: Long = next
             if (value == nextPrimitive) return false
         }
+        // region Tencent Code
+        recompositionHandler.change(next, value, this)
+        // endregion
         updateValue(value)
         return true
     }
@@ -2119,6 +2192,9 @@ internal class ComposerImpl(
             val nextPrimitive: Double = next
             if (value == nextPrimitive) return false
         }
+        // region Tencent Code
+        recompositionHandler.change(next, value, this)
+        // endregion
         updateValue(value)
         return true
     }
@@ -2130,6 +2206,9 @@ internal class ComposerImpl(
             val nextPrimitive: Int = next
             if (value == nextPrimitive) return false
         }
+        // region Tencent Code
+        recompositionHandler.change(next, value, this)
+        // endregion
         updateValue(value)
         return true
     }
@@ -3272,6 +3351,9 @@ internal class ComposerImpl(
     /** Skip to the end of the group opened by [startGroup]. */
     @ComposeCompilerApi
     override fun skipToGroupEnd() {
+        // region Tencent Code
+        recompositionHandler.skipToGroupEnd(this)
+        // endregion
         runtimeCheck(groupNodeCount == 0) {
             "No nodes can be emitted before calling skipAndEndGroup"
         }
@@ -3315,8 +3397,14 @@ internal class ComposerImpl(
      */
     @ComposeCompilerApi
     override fun startRestartGroup(key: Int): Composer {
+        // region Tencent Code
+        recompositionHandler.startRestartGroupStart(key, this)
+        // endregion
         startReplaceGroup(key)
         addRecomposeScope()
+        // region Tencent Code
+        recompositionHandler.startRestartGroupEnd(key, this)
+        // endregion
         return this
     }
 
@@ -3373,6 +3461,9 @@ internal class ComposerImpl(
         // This allows for the invalidate stack to be out of sync since this might be called during
         // exception stack unwinding that might have not called the doneJoin/endRestartGroup in the
         // the correct order.
+        // region Tencent Code
+        recompositionHandler.endRestartGroup(this)
+        // endregion
         val scope = if (invalidateStack.isNotEmpty()) invalidateStack.pop() else null
         if (scope != null) {
             scope.requiresRecompose = false
