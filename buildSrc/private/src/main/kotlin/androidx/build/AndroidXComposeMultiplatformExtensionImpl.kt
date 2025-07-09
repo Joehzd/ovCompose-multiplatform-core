@@ -58,11 +58,42 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
     }
 
     override fun android(): Unit = multiplatformExtension.run {
-        androidTarget()
+        val isInCompositeBuild = project.gradle.parent != null
+
+        androidTarget {
+            // Included into a composite build.
+            if (isInCompositeBuild) {
+                if (project.group.toString().startsWith("org.jetbrains.compose")) {
+                    // Ignore source files for Android target.
+                    // We will add Jetpack Compose for Android projects.
+                    this.compilations.all {
+                        arrayOf(
+                            it.compileJavaTaskProvider,
+                            it.compileTaskProvider
+                        ).forEach {
+                            it.configure {
+                                it.actions = emptyList()
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         val androidMain = sourceSets.getByName("androidMain")
         val jvmMain = getOrCreateJvmMain()
         androidMain.dependsOn(jvmMain)
+
+        if (isInCompositeBuild) {
+            val version = project.redirectAndroidxVersion()
+            val dependencyGroup = project.group.toString().replace(
+                "org.jetbrains.compose",
+                "androidx.compose"
+            )
+            androidMain.dependencies {
+                api("$dependencyGroup:${project.name}:$version")
+            }
+        }
 
         val androidTest = sourceSets.getByName("androidUnitTest")
         val jvmTest = getOrCreateJvmTest()
@@ -200,25 +231,27 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
     }
 
     override fun darwin(): Unit = multiplatformExtension.run {
-        macosX64()
-        macosArm64()
+//        macosX64()
+//        macosArm64()
         iosX64("uikitX64")
         iosArm64("uikitArm64")
         iosSimulatorArm64("uikitSimArm64")
 
         val nativeMain = getOrCreateNativeMain()
         val darwinMain = sourceSets.create("darwinMain")
-        val macosMain = sourceSets.create("macosMain")
-        val macosX64Main = sourceSets.getByName("macosX64Main")
-        val macosArm64Main = sourceSets.getByName("macosArm64Main")
+        val nonDarwinMain = sourceSets.create("nonDarwinMain")
+//        val macosMain = sourceSets.create("macosMain")
+//        val macosX64Main = sourceSets.getByName("macosX64Main")
+//        val macosArm64Main = sourceSets.getByName("macosArm64Main")
         val uikitMain = sourceSets.create("uikitMain")
         val uikitX64Main = sourceSets.getByName("uikitX64Main")
         val uikitArm64Main = sourceSets.getByName("uikitArm64Main")
         val uikitSimArm64Main = sourceSets.getByName("uikitSimArm64Main")
         darwinMain.dependsOn(nativeMain)
-        macosMain.dependsOn(darwinMain)
-        macosX64Main.dependsOn(macosMain)
-        macosArm64Main.dependsOn(macosMain)
+        nonDarwinMain.dependsOn(commonMain)
+//        macosMain.dependsOn(darwinMain)
+//        macosX64Main.dependsOn(macosMain)
+//        macosArm64Main.dependsOn(macosMain)
         uikitMain.dependsOn(darwinMain)
         uikitX64Main.dependsOn(uikitMain)
         uikitArm64Main.dependsOn(uikitMain)
@@ -226,21 +259,36 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
 
         val nativeTest = getOrCreateNativeTest()
         val darwinTest = sourceSets.create("darwinTest")
-        val macosTest = sourceSets.create("macosTest")
-        val macosX64Test = sourceSets.getByName("macosX64Test")
-        val macosArm64Test = sourceSets.getByName("macosArm64Test")
+        val nonDarwinTest = sourceSets.create("nonDarwinTest")
+//        val macosTest = sourceSets.create("macosTest")
+//        val macosX64Test = sourceSets.getByName("macosX64Test")
+//        val macosArm64Test = sourceSets.getByName("macosArm64Test")
         val uikitTest = sourceSets.create("uikitTest")
         val uikitX64Test = sourceSets.getByName("uikitX64Test")
         val uikitArm64Test = sourceSets.getByName("uikitArm64Test")
         val uikitSimArm64Test = sourceSets.getByName("uikitSimArm64Test")
         darwinTest.dependsOn(nativeTest)
-        macosTest.dependsOn(darwinTest)
-        macosX64Test.dependsOn(macosTest)
-        macosArm64Test.dependsOn(macosTest)
+        nonDarwinTest.dependsOn(commonTest)
+//        macosTest.dependsOn(darwinTest)
+//        macosX64Test.dependsOn(macosTest)
+//        macosArm64Test.dependsOn(macosTest)
         uikitTest.dependsOn(darwinTest)
         uikitX64Test.dependsOn(uikitTest)
         uikitArm64Test.dependsOn(uikitTest)
         uikitSimArm64Test.dependsOn(uikitTest)
+
+        targets.all { target ->
+            if (target.platformType != KotlinPlatformType.common &&
+                (target !is KotlinNativeTarget || !target.konanTarget.family.isAppleFamily)) {
+                sourceSets.getByName("${target.name}Main").dependsOn(nonDarwinMain)
+                if (target.name == "android") {
+                    sourceSets.getByName("androidUnitTest").dependsOn(nonDarwinTest)
+                    sourceSets.getByName("androidInstrumentedTest").dependsOn(nonDarwinTest)
+                } else {
+                    sourceSets.getByName("${target.name}Test").dependsOn(nonDarwinTest)
+                }
+            }
+        }
     }
 
     override fun linux(): Unit = multiplatformExtension.run {
@@ -262,6 +310,18 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
         linuxTest.dependsOn(nativeTest)
         linuxX64Test.dependsOn(linuxTest)
         linuxArm64Test.dependsOn(linuxTest)
+    }
+
+    override fun ohos(): Unit = multiplatformExtension.run {
+        ohosArm64 { }
+    }
+
+    override fun ohos(configure: Action<KotlinNativeTarget>): Unit = multiplatformExtension.run {
+        ohosArm64(configure)
+    }
+
+    override fun ohos(configure: KotlinNativeTarget.() -> Unit): Unit = multiplatformExtension.run {
+        ohosArm64(configure)
     }
 
     private fun getOrCreateJvmMain(): KotlinSourceSet =

@@ -221,7 +221,10 @@ class Recomposer(effectCoroutineContext: CoroutineContext) : CompositionContext(
         PendingWork,
     }
 
-    private val stateLock = makeSynchronizedObject()
+    // region Tencent Code
+    // private val stateLock = makeSynchronizedObject()
+    private val stateLock = platformReentrantLockObject()
+    // endregion
 
     // Begin properties guarded by stateLock
     private var runnerJob: Job? = null
@@ -1784,7 +1787,10 @@ private class ProduceFrameSignal {
      * [FramePending] state which must be acknowledged by a call to [takeFrameRequestLocked] once
      * all data that will be used to produce the frame has been claimed.
      */
-    suspend fun awaitFrameRequest(lock: SynchronizedObject) {
+    // region Tencent Code
+    // suspend fun awaitFrameRequest(lock: SynchronizedObject) {
+    suspend fun awaitFrameRequest(lock: Lock) {
+    // endregion
         synchronized(lock) {
             if (pendingFrameContinuation === ProduceAnotherFrame) {
                 pendingFrameContinuation = FramePending

@@ -26,6 +26,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -152,6 +153,19 @@ public class ArrayMap<K, V> extends SimpleArrayMap<K, V> implements Map<K, V> {
     @SuppressWarnings("unchecked")
     public V remove(@Nullable Object key) {
         return super.remove((K) key);
+    }
+
+    /**
+     * Remove an existing key from the array map only if it is currently mapped to [value].
+     *
+     * @param key The key of the mapping to remove.
+     * @param value The value expected to be mapped to the key.
+     * @return Returns `true` if the mapping was removed.
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    public boolean remove(@Nullable Object key, Object value) {
+        return super.remove((K) key, (V) value);
     }
 
     /**

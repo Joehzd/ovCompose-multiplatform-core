@@ -39,6 +39,7 @@ import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.rotary.RotaryScrollEvent
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.node.LayoutNode
+import androidx.compose.ui.node.OwnedLayerFactory
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformDragAndDropManager
@@ -157,6 +158,13 @@ sealed interface ComposeScene : AutoCloseable {
      * @see PlatformContext.convertScreenToLocalPosition
      */
     fun invalidatePositionOnScreen()
+
+    // region Tencent Code
+    /**
+     * Returns the current content size measured in last draw.
+     */
+    fun getMeasuredContentSize(): IntSize
+    // endregion
 
     /**
      * Returns true if there are pending recompositions, renders or dispatched tasks.

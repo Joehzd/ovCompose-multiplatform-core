@@ -263,6 +263,9 @@ fun DisposableEffect(
     remember(*keys) { DisposableEffectImpl(effect) }
 }
 
+private val CacheThrowable = Throwable("Static");
+private val CachedLeftCompositionCancellation = LeftCompositionCancellationException();
+
 internal class LaunchedEffectImpl(
     private val parentCoroutineContext: CoroutineContext,
     private val task: suspend CoroutineScope.() -> Unit,
@@ -280,17 +283,17 @@ internal class LaunchedEffectImpl(
 
     override fun onRemembered() {
         // This should never happen but is left here for safety
-        job?.cancel("Old job was still running!")
+        job?.cancel("Old job was still running!", if (ComposeEnableCachedThrowable) CacheThrowable else null)
         job = scope.launch(block = task)
     }
 
     override fun onForgotten() {
-        job?.cancel(LeftCompositionCancellationException())
+        job?.cancel(if (ComposeEnableCachedThrowable) CachedLeftCompositionCancellation else LeftCompositionCancellationException())
         job = null
     }
 
     override fun onAbandoned() {
-        job?.cancel(LeftCompositionCancellationException())
+        job?.cancel(if (ComposeEnableCachedThrowable) CachedLeftCompositionCancellation else LeftCompositionCancellationException())
         job = null
     }
 

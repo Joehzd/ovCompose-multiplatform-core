@@ -116,6 +116,10 @@ interface PlatformContext {
     }
 
     val textToolbar: TextToolbar get() = EmptyTextToolbar
+
+    // region Tencent Code
+    val drawInSkia: Boolean get() = true
+    // endregion
     fun setPointerIcon(pointerIcon: PointerIcon) = Unit
 
     val parentFocusManager: FocusManager get() = EmptyFocusManager
@@ -140,6 +144,18 @@ interface PlatformContext {
      * @see SemanticsOwnerListener
      */
     val semanticsOwnerListener: SemanticsOwnerListener? get() = null
+
+    // region Tencent Code
+    /**
+     * block of calculating compose bounds in outer scrollable container window
+     */
+    val boundsPositionCalculator: ((offset: Rect) -> Rect)? get() = null
+
+    /*
+    * native objects reusePool pointer
+    */
+    val nativeReusePool: Long
+    // endregion
 
     interface RootForTestListener {
         fun onRootForTestCreated(root: PlatformRootForTest)
@@ -192,6 +208,10 @@ interface PlatformContext {
             override val screenReader: PlatformScreenReader = object : PlatformScreenReader {
                 override val isActive: Boolean = false
             }
+
+            // region Tencent Code
+            override val nativeReusePool: Long = 0
+            // end region
         }
     }
 }

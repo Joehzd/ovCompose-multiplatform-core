@@ -329,7 +329,11 @@ internal fun LazyLayoutMeasureScope.measurePager(
                 }
             }
         }
-
+        // do not compose extra pages when user ser disableScrollLoading
+        var beyondBoundsPageCountOverride = beyondBoundsPageCount;
+        if (currentFirstPageScrollOffset != 0 && disableScrollLoading) {
+            beyondBoundsPageCountOverride = 0;
+        }
         // Compose extra pages before
         val extraPagesBefore =
             createPagesBeforeList(

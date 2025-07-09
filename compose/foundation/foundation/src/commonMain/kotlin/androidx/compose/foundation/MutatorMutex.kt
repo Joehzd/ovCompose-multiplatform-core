@@ -17,6 +17,7 @@
 package androidx.compose.foundation
 
 import androidx.compose.foundation.internal.PlatformOptimizedCancellationException
+import androidx.compose.runtime.ComposeEnableCachedThrowable
 import androidx.compose.runtime.Stable
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -76,12 +77,16 @@ internal class MutationInterruptedException :
  *
  * @sample androidx.compose.foundation.samples.mutatorMutexStateObject
  */
+
+
+private val CachedMutationInterruptedException = MutationInterruptedException()
+
 @Stable
 class MutatorMutex {
     private class Mutator(val priority: MutatePriority, val job: Job) {
         fun canInterrupt(other: Mutator) = priority >= other.priority
 
-        fun cancel() = job.cancel(MutationInterruptedException())
+        fun cancel() = job.cancel(if (ComposeEnableCachedThrowable) CachedMutationInterruptedException else MutationInterruptedException())
     }
 
     private val currentMutator = AtomicReference<Mutator?>(null)

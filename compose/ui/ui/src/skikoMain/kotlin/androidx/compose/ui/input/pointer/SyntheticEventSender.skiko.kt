@@ -16,6 +16,8 @@
 
 package androidx.compose.ui.input.pointer
 
+import androidx.compose.runtime.ComposeTabService
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.scene.PointerEventResult
 import androidx.compose.ui.scene.merging
@@ -197,8 +199,14 @@ internal class SyntheticEventSender(
         val anyMovementConsumed = _send(event)
         // We don't send nativeEvent for synthetic events.
         // Nullify to avoid memory leaks (native events can point to native views).
-        previousEvent = event.copy(nativeEvent = null)
+        // region Tencent Code
+        if (ComposeTabService.composeGestureEnable && event.eventType == PointerEventType.Unknown) {
+            reset()
+        } else {
+            previousEvent = event.copy(nativeEvent = null)
+        }
         return anyMovementConsumed
+        // endregion
     }
 
     private fun isMoveEventMissing(

@@ -119,7 +119,9 @@ internal expect fun createSnapshotMutableLongState(value: Long): MutableLongStat
  */
 internal open class SnapshotMutableLongStateImpl(value: Long) :
     StateObjectImpl(), MutableLongState, SnapshotMutableState<Long> {
-
+    // region Tencent Code
+    private var sourceFile: String = ""
+    // endregion
     private var next =
         currentSnapshot().let { snapshot ->
             LongStateStateRecord(snapshot.snapshotId, value).also {
@@ -150,6 +152,14 @@ internal open class SnapshotMutableLongStateImpl(value: Long) :
     override fun component1(): Long = longValue
 
     override fun component2(): (Long) -> Unit = { longValue = it }
+
+    // region Tencent Code
+    override fun setSourceFile(sourceFile: String) {
+        this.sourceFile = sourceFile
+    }
+
+    override fun getSourceFile(): String = sourceFile
+    // endregion
 
     override fun prependStateRecord(value: StateRecord) {
         next = value as LongStateStateRecord

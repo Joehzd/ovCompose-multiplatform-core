@@ -16,26 +16,27 @@ enum class ComposePlatforms(vararg val alternativeNames: String) {
     Desktop("Jvm"),
     AndroidDebug("Android"),
     AndroidRelease("Android"),
-    Js("Web"),
-    WasmJs("Web"),
-    MacosX64("Macos"),
-    MacosArm64("Macos"),
+//    Js("Web"),
+//    WasmJs("Web"),
+//    MacosX64("Macos"),
+//    MacosArm64("Macos"),
     UikitX64("UiKit"), // TODO: Align with AOSP: rename to iOS
     UikitArm64("UiKit"), // TODO: Align with AOSP: rename to iOS
     UikitSimArm64("UiKit"), // TODO: Align with AOSP: rename to iOS
     IosX64("Ios"),
     IosArm64("Ios"),
     IosSimulatorArm64("Ios"),
-    TvosArm64("TvOs"),
-    TvosX64("TvOs"),
-    TvosSimulatorArm64("TvOs"),
-    WatchosArm64("WatchOs"),
-    WatchosArm32("WatchOs"),
-    WatchosX64("WatchOs"),
-    WatchosSimulatorArm64("WatchOs"),
-    LinuxX64("Linux"),
-    LinuxArm64("Linux"),
-    MingwX64("Mingw"),
+//    TvosArm64("TvOs"),
+//    TvosX64("TvOs"),
+//    TvosSimulatorArm64("TvOs"),
+//    WatchosArm64("WatchOs"),
+//    WatchosArm32("WatchOs"),
+//    WatchosX64("WatchOs"),
+//    WatchosSimulatorArm64("WatchOs"),
+//    LinuxX64("Linux"),
+//    LinuxArm64("Linux"),
+//    MingwX64("Mingw"),
+    OhosArm64("Ohos")
     ;
 
     private val namesLowerCased by lazy {
@@ -101,6 +102,7 @@ enum class ComposePlatforms(vararg val alternativeNames: String) {
             MacosArm64
         )
 
+        val OHOS = EnumSet.of(ComposePlatforms.OhosArm64)
         val WEB = EnumSet.of(
             Js,
             WasmJs

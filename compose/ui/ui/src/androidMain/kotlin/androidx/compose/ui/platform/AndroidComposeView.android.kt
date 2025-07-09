@@ -2630,6 +2630,10 @@ internal class AndroidComposeView(context: Context, coroutineContext: CoroutineC
         return windowToViewMatrix.map(positionInWindow)
     }
 
+    // region Tencent Code
+    override fun boundsBoxInContainerWindow(bounds: androidx.compose.ui.geometry.Rect) = bounds
+    // endregion
+
     override fun calculatePositionInWindow(localPosition: Offset): Offset {
         recalculateWindowPosition()
         return viewToWindowMatrix.map(localPosition)

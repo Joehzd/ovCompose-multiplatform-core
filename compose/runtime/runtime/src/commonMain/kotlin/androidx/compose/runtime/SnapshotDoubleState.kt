@@ -126,7 +126,9 @@ internal expect fun createSnapshotMutableDoubleState(value: Double): MutableDoub
  */
 internal open class SnapshotMutableDoubleStateImpl(value: Double) :
     StateObjectImpl(), MutableDoubleState, SnapshotMutableState<Double> {
-
+    // region Tencent Code
+    private var sourceFile: String = ""
+    // endregion
     private var next =
         currentSnapshot().let { snapshot ->
             DoubleStateStateRecord(snapshot.snapshotId, value).also {
@@ -157,6 +159,14 @@ internal open class SnapshotMutableDoubleStateImpl(value: Double) :
     override fun component1(): Double = doubleValue
 
     override fun component2(): (Double) -> Unit = { doubleValue = it }
+
+    // region Tencent Code
+    override fun setSourceFile(sourceFile: String) {
+        this.sourceFile = sourceFile
+    }
+
+    override fun getSourceFile(): String =  sourceFile
+    // endregion
 
     override fun prependStateRecord(value: StateRecord) {
         next = value as DoubleStateStateRecord

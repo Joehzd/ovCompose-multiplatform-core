@@ -23,6 +23,11 @@ actual fun PathMeasure(): PathMeasure = AndroidPathMeasure(android.graphics.Path
 class AndroidPathMeasure
 internal constructor(private val internalPathMeasure: android.graphics.PathMeasure) : PathMeasure {
 
+    // region Tencent Code
+    override var pathType: PathMeasureType
+        get() = PathMeasureType.Skia
+        set(value) {}
+    // endregion
     override val length: Float
         get() = internalPathMeasure.length
 

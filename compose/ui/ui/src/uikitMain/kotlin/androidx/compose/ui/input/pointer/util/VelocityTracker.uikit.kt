@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.input.pointer.util
 
+import androidx.compose.runtime.ComposeTabService
 import kotlin.math.abs
 
 internal actual const val HistorySize: Int = 40 // Increased to store history on 120 Hz devices
@@ -32,6 +33,10 @@ internal actual fun VelocityTracker1D.shouldUseDataPoints(
     count: Int,
     afterPointerStop: Boolean
 ): Boolean {
+    // region Tencent Code
+    if (ComposeTabService.iOSFlingConfig.alwaysUseDataPoints) return true
+    // endregion
+
     if (count == 0) {
         return false
     }

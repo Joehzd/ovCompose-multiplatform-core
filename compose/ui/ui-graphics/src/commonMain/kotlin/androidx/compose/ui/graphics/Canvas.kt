@@ -149,6 +149,13 @@ fun Canvas.scale(sx: Float, sy: Float = sx, pivotX: Float, pivotY: Float) {
 /** Return an instance of the native primitive that implements the Canvas interface */
 expect val Canvas.nativeCanvas: NativeCanvas
 
+// region Tencent Code
+enum class CanvasType {
+    Skia,
+    Native
+}
+// endregion
+
 @JvmDefaultWithCompatibility
 interface Canvas {
 
@@ -536,4 +543,9 @@ interface Canvas {
      * @see enableZ
      */
     fun disableZ()
+
+    // region Tencent Code
+    val canvasType: CanvasType
+        get() = CanvasType.Skia
+    // endregion
 }

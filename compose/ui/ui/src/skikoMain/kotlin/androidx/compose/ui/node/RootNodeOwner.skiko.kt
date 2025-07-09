@@ -18,6 +18,7 @@ package androidx.compose.ui.node
 
 import androidx.collection.MutableIntObjectMap
 import androidx.collection.mutableIntObjectMapOf
+import androidx.compose.runtime.ComposeTabService
 import androidx.compose.runtime.collection.mutableVectorOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,9 +41,12 @@ import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.isUnspecified
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.SkiaGraphicsContext
 import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.graphics.Matrix
+import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
@@ -146,6 +150,20 @@ internal class RootNodeOwner(
             onRootConstrainsChanged(value?.toConstraints())
         }
     var density by mutableStateOf(density)
+    // region Tencent Code
+    var layerFactory: OwnedLayerFactory? = null
+
+    /**
+     * record outer container's scroll offset
+     */
+    private var outerContainerOffset = Offset.Zero
+    // endregion
+
+    /**
+     * Bounds of [Owner] in window coordinates.
+     */
+    var bounds by mutableStateOf(bounds)
+    var density: Density by mutableStateOf(density)
 
     private var _layoutDirection by mutableStateOf(layoutDirection)
     var layoutDirection: LayoutDirection
@@ -405,6 +423,7 @@ internal class RootNodeOwner(
             it.layoutDirection = layoutDirection
             it.measurePolicy = RootMeasurePolicy
             it.modifier = rootModifier
+            it.drawInSkia = drawInSkia
         }
 
         override val sharedDrawScope = LayoutNodeDrawScope()
@@ -416,6 +435,7 @@ internal class RootNodeOwner(
         override val clipboard = createPlatformClipboard()
         override val accessibilityManager = DefaultAccessibilityManager()
         override val graphicsContext get() = this@RootNodeOwner.graphicsContext
+        override val drawInSkia get() =  platformContext.drawInSkia
         override val textToolbar get() = platformContext.textToolbar
         override val autofillTree = AutofillTree()
         override val autofill: Autofill?  get() = null
@@ -658,6 +678,12 @@ internal class RootNodeOwner(
 //                    "use direct conversion instead"
 //            )
 //        }
+
+        // region Tencent Code
+        override fun boundsBoxInContainerWindow(bounds: Rect): Rect {
+            return platformContext.boundsPositionCalculator?.invoke(bounds) ?: bounds
+        }
+        // endregion
 
         private val endApplyChangesListeners = mutableVectorOf<(() -> Unit)?>()
 

@@ -65,11 +65,12 @@ dependencies {
 if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
     androidXComposeMultiplatform {
         android()
-        desktop()
-        js()
-        wasm()
+//        desktop()
+//        js()
+//        wasm()
         darwin()
-        linux()
+//        linux()
+        ohos()
     }
 
     kotlin {
@@ -77,34 +78,34 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
         // We can support the kotlin-native targets supported by kotlin coroutines:
         // https://github.com/Kotlin/kotlinx.coroutines/blob/master/buildSrc/src/main/kotlin/kotlin-multiplatform-conventions.gradle.kts
         // NOTE: Keep this list in sync with runtime-saveable's targets.
-        watchosArm64()
-        watchosArm32()
-        watchosX64()
-        watchosSimulatorArm64()
-        tvosArm64()
-        tvosX64()
-        tvosSimulatorArm64()
-        mingwX64()
-        linuxArm64()
+//        watchosArm64()
+//        watchosArm32()
+//        watchosX64()
+//        watchosSimulatorArm64()
+//        tvosArm64()
+//        tvosX64()
+//        tvosSimulatorArm64()
+//        mingwX64()
+//        linuxArm64()
 
-        targets.js {
-            nodejs {
-                testTask {
-                    useMocha {
-                        timeout = 8000
-                    }
-                }
-            }
-            browser() {
-                testTask {
-                    testLogging.showStandardStreams = true
-//                    useKarma {
-//                        useChromeHeadless()
-//                        useFirefox()
+//        targets.js {
+//            nodejs {
+//                testTask {
+//                    useMocha {
+//                        timeout = 8000
 //                    }
-                }
-            }
-        }
+//                }
+//            }
+//            browser() {
+//                testTask {
+//                    testLogging.showStandardStreams = true
+////                    useKarma {
+////                        useChromeHeadless()
+////                        useFirefox()
+////                    }
+//                }
+//            }
+//        }
 
         /*
          * When updating dependencies, make sure to make the an an analogous update in the
@@ -129,22 +130,22 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 }
             }
 
-            commonTest.dependencies {
-                implementation(project(":compose:runtime:runtime-test-utils"))
-                implementation kotlin("test")
-                implementation(libs.kotlinCoroutinesTest)
-            }
-
-            androidAndroidTest {
-                dependsOn(jvmTest)
-                dependencies {
-                    implementation(libs.testExtJunit)
-                    implementation(libs.testRules)
-                    implementation(libs.testRunner)
-                    implementation(libs.truth)
-                    implementation(libs.kotlinCoroutinesTest)
-                }
-            }
+//            commonTest.dependencies {
+//                implementation(project(":compose:runtime:runtime-test-utils"))
+//                implementation kotlin("test")
+//                implementation(libs.kotlinCoroutinesTest)
+//            }
+//
+//            androidAndroidTest {
+//                dependsOn(jvmTest)
+//                dependencies {
+//                    implementation(libs.testExtJunit)
+//                    implementation(libs.testRules)
+//                    implementation(libs.testRunner)
+//                    implementation(libs.truth)
+//                    implementation(libs.kotlinCoroutinesTest)
+//                }
+//            }
 
             nonAndroidMain.dependsOn(commonMain)
             nonJvmMain {
@@ -175,9 +176,9 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 }
             }
 
-            desktopTest.dependsOn(jbTest)
-            nativeTest.dependsOn(jbTest)
-            jbTest.dependsOn(commonTest)
+//            desktopTest.dependsOn(jbTest)
+//            nativeTest.dependsOn(jbTest)
+//            jbTest.dependsOn(commonTest)
 
             nativeMain {
                 dependsOn(nonJvmMain)
@@ -194,104 +195,105 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                     implementation(libs.atomicFu)
                 }
             }
-            desktopMain.dependsOn(jbMain)
+//            desktopMain.dependsOn(jbMain)
             jsNativeMain.dependsOn(jbMain)
+            ohosArm64Main.dependsOn(nativeMain)
 
-            darwinMain {
-                dependsOn(unixMain)
-            }
+//            darwinMain {
+//                dependsOn(unixMain)
+//            }
+//
+//            linuxMain {
+//                dependsOn(unixMain)
+//            }
 
-            linuxMain {
-                dependsOn(unixMain)
-            }
+//            linuxTest {
+//                dependsOn(nativeTest)
+//            }
 
-            linuxTest {
-                dependsOn(nativeTest)
-            }
+//            linuxArm64Main.dependsOn(linuxMain)
+//            linuxArm64Test.dependsOn(linuxTest)
+//            linuxX64Main.dependsOn(linuxMain)
+//            linuxX64Test.dependsOn(linuxTest)
+//
+//            mingwX64Main.dependsOn(nativeMain)
+//            mingwX64Test.dependsOn(nativeTest)
 
-            linuxArm64Main.dependsOn(linuxMain)
-            linuxArm64Test.dependsOn(linuxTest)
-            linuxX64Main.dependsOn(linuxMain)
-            linuxX64Test.dependsOn(linuxTest)
+//            def darwinMain = sourceSets.getByName("darwinMain")
+//            def darwinTest = sourceSets.getByName("darwinTest")
 
-            mingwX64Main.dependsOn(nativeMain)
-            mingwX64Test.dependsOn(nativeTest)
+//            def watchOsMain = sourceSets.create("watchOsMain")
+//            def watchOsTest = sourceSets.create("watchOsTest")
+//            watchOsMain.dependsOn(darwinMain)
+//            watchOsTest.dependsOn(darwinTest)
 
-            def darwinMain = sourceSets.getByName("darwinMain")
-            def darwinTest = sourceSets.getByName("darwinTest")
+//            watchosArm64Main.dependsOn(watchOsMain)
+//            watchosArm64Test.dependsOn(watchOsTest)
+//            watchosArm32Main.dependsOn(watchOsMain)
+//            watchosArm32Test.dependsOn(watchOsTest)
+//            watchosX64Main.dependsOn(watchOsMain)
+//            watchosX64Test.dependsOn(watchOsTest)
+//            watchosSimulatorArm64Main.dependsOn(watchOsMain)
+//            watchosSimulatorArm64Test.dependsOn(watchOsTest)
 
-            def watchOsMain = sourceSets.create("watchOsMain")
-            def watchOsTest = sourceSets.create("watchOsTest")
-            watchOsMain.dependsOn(darwinMain)
-            watchOsTest.dependsOn(darwinTest)
+//            def tvOsMain = sourceSets.create("tvOsMain")
+//            def tvOsTest = sourceSets.create("tvOsTest")
+//            tvOsMain.dependsOn(darwinMain)
+//            tvOsTest.dependsOn(darwinTest)
 
-            watchosArm64Main.dependsOn(watchOsMain)
-            watchosArm64Test.dependsOn(watchOsTest)
-            watchosArm32Main.dependsOn(watchOsMain)
-            watchosArm32Test.dependsOn(watchOsTest)
-            watchosX64Main.dependsOn(watchOsMain)
-            watchosX64Test.dependsOn(watchOsTest)
-            watchosSimulatorArm64Main.dependsOn(watchOsMain)
-            watchosSimulatorArm64Test.dependsOn(watchOsTest)
+//            tvosArm64Main.dependsOn(tvOsMain)
+//            tvosArm64Test.dependsOn(tvOsTest)
+//            tvosX64Main.dependsOn(tvOsMain)
+//            tvosX64Test.dependsOn(tvOsTest)
+//            tvosSimulatorArm64Main.dependsOn(tvOsMain)
+//            tvosSimulatorArm64Test.dependsOn(tvOsTest)
 
-            def tvOsMain = sourceSets.create("tvOsMain")
-            def tvOsTest = sourceSets.create("tvOsTest")
-            tvOsMain.dependsOn(darwinMain)
-            tvOsTest.dependsOn(darwinTest)
-
-            tvosArm64Main.dependsOn(tvOsMain)
-            tvosArm64Test.dependsOn(tvOsTest)
-            tvosX64Main.dependsOn(tvOsMain)
-            tvosX64Test.dependsOn(tvOsTest)
-            tvosSimulatorArm64Main.dependsOn(tvOsMain)
-            tvosSimulatorArm64Test.dependsOn(tvOsTest)
-
-            nonEmulatorCommonTest {
-                dependsOn(commonTest)
-                dependencies {
-                }
-            }
-            nonEmulatorJvmTest {
-                dependsOn(nonEmulatorCommonTest)
-                dependencies {
-                }
-            }
+//            nonEmulatorCommonTest {
+//                dependsOn(commonTest)
+//                dependencies {
+//                }
+//            }
+//            nonEmulatorJvmTest {
+//                dependsOn(nonEmulatorCommonTest)
+//                dependencies {
+//                }
+//            }
 
 
-            jvmTest {
-                dependsOn(nonEmulatorJvmTest)
-                dependencies {
-                    implementation(libs.kotlinTestJunit)
-                    implementation(libs.kotlinCoroutinesTest)
-                    implementation(libs.kotlinReflect)
-                }
-            }
+//            jvmTest {
+//                dependsOn(nonEmulatorJvmTest)
+//                dependencies {
+//                    implementation(libs.kotlinTestJunit)
+//                    implementation(libs.kotlinCoroutinesTest)
+//                    implementation(libs.kotlinReflect)
+//                }
+//            }
 
-            desktopTest {
-                dependsOn(jvmTest)
-            }
-            webTest {
-                dependsOn(jbTest)
-                dependsOn(nonEmulatorCommonTest)
-            }
-            jsTest {
-                dependsOn(webTest)
-                dependencies {
-                    implementation(libs.kotlinTestJs)
-                }
-            }
-            wasmJsTest {
-                dependsOn(webTest)
-                dependencies {
-                    implementation(libs.create("kotlinTestWasm"))
-                }
-            }
-            wasmJsTest.dependsOn(webTest)
-            jsTest.dependsOn(webTest)
-            nativeTest {
-                dependsOn(nonEmulatorCommonTest)
-                kotlin.srcDir("src/nativeTest/kotlin")
-            }
+//            desktopTest {
+//                dependsOn(jvmTest)
+//            }
+//            webTest {
+//                dependsOn(jbTest)
+//                dependsOn(nonEmulatorCommonTest)
+//            }
+//            jsTest {
+//                dependsOn(webTest)
+//                dependencies {
+//                    implementation(libs.kotlinTestJs)
+//                }
+//            }
+//            wasmJsTest {
+//                dependsOn(webTest)
+//                dependencies {
+//                    implementation(libs.create("kotlinTestWasm"))
+//                }
+//            }
+//            wasmJsTest.dependsOn(webTest)
+//            jsTest.dependsOn(webTest)
+//            nativeTest {
+//                dependsOn(nonEmulatorCommonTest)
+//                kotlin.srcDir("src/nativeTest/kotlin")
+//            }
         }
     }
     dependencies {

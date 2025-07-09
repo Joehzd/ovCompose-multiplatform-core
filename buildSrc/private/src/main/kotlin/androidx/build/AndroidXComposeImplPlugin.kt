@@ -326,6 +326,10 @@ class AndroidXComposeImplPlugin : Plugin<Project> {
                 }
             }
 
+            // region Tencent Code: Fix JVM target compatibility for Kotlin 2.0.
+            multiplatformExtension.jvmToolchain(11)
+            // endregion
+
             configureLintForMultiplatformLibrary(multiplatformExtension)
 
             afterEvaluate {

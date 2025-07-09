@@ -28,6 +28,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.internal.requirePrecondition
 import androidx.compose.runtime.remember
+import androidx.compose.ui.ExperimentalTencentComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.focus.FocusRequesterModifierNode
@@ -1324,7 +1325,24 @@ private class CombinedClickableNode(
         }
     }
 }
+// region Tencent Code
+/**
+ * Allows awareness of click events within the descendant nodes of the current Modifier.Node,
+ * only being aware of click events belonging to the current LayoutNode and not being aware of child LayoutNode events.
+ */
+interface LocalClickableAwareNode : TraversableNode {
+    override val traverseKey: Key
 
+    fun beforeClick() {}
+    fun afterClick() {}
+    fun beforeLongClick() {}
+    fun afterLongClick() {}
+    fun beforeDoubleClick() {}
+    fun afterDoubleClick() {}
+
+    interface Key
+}
+// endregion
 internal abstract class AbstractClickableNode(
     private var interactionSource: MutableInteractionSource?,
     private var indicationNodeFactory: IndicationNodeFactory?,

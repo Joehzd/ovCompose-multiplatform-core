@@ -17,7 +17,9 @@
 package androidx.compose.material
 
 import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.style.LineHeightStyle
 import kotlinx.atomicfu.atomic
+internal actual fun defaultLineHeightStyleTrim(): LineHeightStyle.Trim = LineHeightStyle.Trim.Both
 
 internal actual fun defaultPlatformTextStyle(): PlatformTextStyle? = null
 

@@ -61,7 +61,8 @@ class BroadcastFrameClock(private val onNewAwaiters: (() -> Unit)? = null) : Mon
         }
     }
 
-    private val lock = makeSynchronizedObject()
+//    private val lock = makeSynchronizedObject()
+    private val lock = platformReentrantLockObject()
     private var failureCause: Throwable? = null
     private val pendingAwaitersCountUnlocked = AtomicAwaitersCount()
     private var awaiters = mutableObjectListOf<FrameAwaiter<*>>()

@@ -36,6 +36,13 @@ import androidx.compose.runtime.snapshots.Snapshot.Companion.takeSnapshot
 import androidx.compose.runtime.snapshots.tooling.creatingSnapshot
 import androidx.compose.runtime.snapshots.tooling.dispatchObserverOnApplied
 import androidx.compose.runtime.snapshots.tooling.dispatchObserverOnPreDispose
+import androidx.compose.runtime.synchronized
+import androidx.compose.runtime.createSynchronizedObject
+import androidx.compose.runtime.currentThreadId
+import androidx.compose.runtime.monitor.CalledFromWrongThreadException
+import androidx.compose.runtime.monitor.ComposeDiagnosticMonitor
+import androidx.compose.runtime.monitor.StateMergeConflictException
+import androidx.compose.runtime.platformReentrantLockObject
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -85,6 +92,10 @@ sealed class Snapshot(
      */
     open var snapshotId: SnapshotId = snapshotId
         internal set
+
+    // region Tencent Code
+    internal val threadId = currentThreadId()
+    // endregion
 
     internal open var writeCount: Int
         get() = 0
@@ -1037,10 +1048,27 @@ internal constructor(
                 return@forEach
             }
             if (current != previous) {
-                val applied = readable(first, this.snapshotId, this.invalid) ?: readError()
-                val merged =
-                    optimisticMerges?.get(current)
-                        ?: run { state.mergeRecords(previous, current, applied) }
+                val applied = readable(first, id, this.invalid) ?: readError()
+                val merged = optimisticMerges?.get(current) ?: run {
+                    state.mergeRecords(previous, current, applied)
+                }
+                // region Tencent code
+                ?: run {
+                    if (ComposeDiagnosticMonitor.stateMergeConflictFix) {
+                        // take current record if state merges conflict, logical structure:
+                        // main snapshot: A —— —— C —— —— C
+                        //                  \           /
+                        // sub snapshot:       —— B ——
+                        current
+                    } else {
+                        null
+                    }
+                }.also {
+                    ComposeDiagnosticMonitor.reportStateMergeConflict(
+                        StateMergeConflictException(state)
+                    )
+                }
+                // endregion
                 when (merged) {
                     null -> return SnapshotApplyResult.Failure(this)
                     applied -> {
@@ -1233,6 +1261,14 @@ fun interface ObserverHandle {
  * snapshot is used.
  */
 internal fun currentSnapshot(): Snapshot = threadSnapshot.get() ?: globalSnapshot
+
+// region Tencent Code
+/**
+ * Returns the compose thread's active snapshot. Only used for fallback.
+ */
+internal fun fallbackSnapshot(): Snapshot =
+    threadSnapshot.get(snapshotInitializer.threadId) ?: currentGlobalSnapshot.get()
+// endregion
 
 /**
  * An exception that is thrown when [SnapshotApplyResult.check] is called on a result of a
@@ -1890,6 +1926,7 @@ internal inline fun <T> sync(block: () -> T): T {
     contract { callsInPlace(block, InvocationKind.EXACTLY_ONCE) }
     return synchronized(lock, block)
 }
+internal val lock = platformReentrantLockObject()
 
 // The following variables should only be written when sync is taken
 
@@ -2068,18 +2105,30 @@ private fun <T : StateRecord> readable(r: T, id: SnapshotId, invalid: SnapshotId
 fun <T : StateRecord> T.readable(state: StateObject): T {
     val snapshot = Snapshot.current
     snapshot.readObserver?.invoke(state)
-    return readable(this, snapshot.snapshotId, snapshot.invalid)
-        ?: sync {
-            // Readable can return null when the global snapshot has been advanced by another thread
-            // and state written to the object was overwritten while this thread was paused.
-            // Repeating the read is valid here as either this will return the same result as
-            // the previous call or will find a valid record. Being in a sync block prevents other
-            // threads from writing to this state object until the read completes.
-            val syncSnapshot = Snapshot.current
+    return readable(this, snapshot.id, snapshot.invalid) ?: sync {
+        // Readable can return null when the global snapshot has been advanced by another thread
+        // and state written to the object was overwritten while this thread was paused. Repeating
+        // the read is valid here as either this will return the same result as the previous call
+        // or will find a valid record. Being in a sync block prevents other threads from writing
+        // to this state object until the read completes.
+        val syncSnapshot = Snapshot.current
+        @Suppress("UNCHECKED_CAST")
+        readable(state.firstStateRecord as T, syncSnapshot.id, syncSnapshot.invalid)
+    }
+    // region Tencent Code
+    ?: (if (ComposeDiagnosticMonitor.fallbackStateError) {
+        sync {
+            val fallbackSnapshot = fallbackSnapshot()
             @Suppress("UNCHECKED_CAST")
-            readable(state.firstStateRecord as T, syncSnapshot.snapshotId, syncSnapshot.invalid)
-                ?: readError()
+            readable(state.firstStateRecord as T, fallbackSnapshot.id, fallbackSnapshot.invalid)
+        }.also {
+            val error = CalledFromWrongThreadException(
+                "Only the original thread that created the state object can read and write its value.")
+            ComposeDiagnosticMonitor.reportStateOnWrongThread(error)
         }
+    } else null)
+    // endregion
+    ?: readError()
 }
 
 // unused, still here for API compat.
@@ -2461,7 +2510,21 @@ internal fun <T : StateRecord> current(r: T) =
                     readable(r, syncSnapshot.snapshotId, syncSnapshot.invalid)
                 }
             }
-            ?: readError()
+        }
+        // region Tencent Code
+        ?: (if (ComposeDiagnosticMonitor.fallbackStateError) {
+            sync {
+                val fallbackSnapshot = fallbackSnapshot()
+                readable(r, fallbackSnapshot.id, fallbackSnapshot.invalid)
+            }.also {
+                val error = CalledFromWrongThreadException(
+                    "Only the original thread that created the state object can read and write its value."
+                )
+                ComposeDiagnosticMonitor.reportStateOnWrongThread(error)
+            }
+        } else null)
+        // endregion
+        ?: readError()
     }
 
 /**

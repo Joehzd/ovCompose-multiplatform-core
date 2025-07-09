@@ -26,6 +26,16 @@ expect fun Path(): Path
 /** Create a new path, copying the contents from the src path. */
 fun Path.copy(): Path = Path().apply { addPath(this@copy) }
 
+/**
+ * 原生的Path，不进行注入
+ */
+expect fun LocalPath(): Path
+
+enum class PathType {
+    Skia,
+    Native
+}
+
 @JvmDefaultWithCompatibility
 /* expect class */ interface Path {
     /**
@@ -63,7 +73,14 @@ fun Path.copy(): Path = Path().apply { addPath(this@copy) }
      */
     val isEmpty: Boolean
 
-    /** Starts a new subpath at the given coordinate */
+    // region Tencent Code
+    var pathType: PathType
+
+    val currentPath: Path
+    // endregion
+    /**
+     * Starts a new subpath at the given coordinate
+     */
     fun moveTo(x: Float, y: Float)
 
     /** Starts a new subpath at the given offset from the current point */

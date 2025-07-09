@@ -457,7 +457,8 @@ internal class CompositionImpl(
     private val pendingModifications = AtomicReference<Any?>(null)
 
     // Held when making changes to self or composer
-    private val lock = makeSynchronizedObject()
+//    private val lock = makeSynchronizedObject()
+    private val lock = platformReentrantLockObject()
 
     /**
      * A set of remember observers that were potentially abandoned between [composeContent] or
@@ -1222,6 +1223,9 @@ internal class CompositionImpl(
     }
 
     override fun invalidate(scope: RecomposeScopeImpl, instance: Any?): InvalidationResult {
+        // region Tencent Code
+        composer.recompositionHandler.invalidate(scope, instance)
+        // endregion
         if (scope.defaultsInScope) {
             scope.defaultsInvalid = true
         }

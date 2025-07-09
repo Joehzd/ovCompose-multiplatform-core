@@ -24,6 +24,7 @@ import androidx.compose.ui.autofill.AutofillManager
 import androidx.compose.ui.draganddrop.DragAndDropManager
 import androidx.compose.ui.focus.FocusOwner
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.layer.GraphicsLayer
@@ -161,6 +162,10 @@ internal interface Owner : PositionCalculator {
     var showLayoutBounds: Boolean
         @RestrictTo(RestrictTo.Scope.LIBRARY) @InternalCoreApi set
 
+    // region Tencent Code
+    val drawInSkia: Boolean
+        get() = false
+    // endregion
     /**
      * Called by [LayoutNode] to request the Owner a new measurement+layout. [forceRequest] defines
      * whether the node should bypass the logic that would reject measure requests, and therefore
@@ -227,7 +232,12 @@ internal interface Owner : PositionCalculator {
      * window, this will not be a simple translation.
      */
     fun calculateLocalPosition(positionInWindow: Offset): Offset
-
+    // region Tencent Code
+    /**
+     * clip [bounds] in native container window, when compose scroll in a scrollable component
+     */
+    fun boundsBoxInContainerWindow(bounds: Rect): Rect
+    // endregion
     /** Ask the system to request autofill values to this owner. */
     fun requestAutofill(node: LayoutNode)
 

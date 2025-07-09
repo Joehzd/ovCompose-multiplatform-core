@@ -290,6 +290,7 @@ internal constructor(
             remeasurement?.forceRemeasure()
             layoutWithMeasurement++
         }
+        accumulator = consumed - consumedInt
 
         // Return the consumed value.
         return (if (changed) scrollDelta else delta).toFloat()

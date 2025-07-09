@@ -69,7 +69,9 @@ import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
@@ -94,6 +96,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalTextToolbar
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.platform.PlatformTextNodeFactory
 import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
@@ -212,6 +215,11 @@ internal fun CoreTextField(
     val (legacyTextInputServiceAdapter, textInputService) =
         legacyTextInputServiceAdapterAndService()
 
+    /**
+     * 平台文本的代理接口，用于代理原本Paragraph的实现
+     */
+    val platformTextDelegate =
+        PlatformTextNodeFactory.instance.createPlatformDelegateTextNode()
     // CompositionLocals
     val density = LocalDensity.current
     val fontFamilyResolver = LocalFontFamilyResolver.current
@@ -219,7 +227,8 @@ internal fun CoreTextField(
     val focusManager = LocalFocusManager.current
     val windowInfo = LocalWindowInfo.current
     val keyboardController = LocalSoftwareKeyboardController.current
-
+    var localBitmap: ImageBitmap? = null
+    var localCanvas: Canvas? = null
     // Scroll state
     val singleLine = maxLines == 1 && !softWrap && imeOptions.singleLine
     val orientation = if (singleLine) Orientation.Horizontal else Orientation.Vertical
@@ -386,23 +395,57 @@ internal fun CoreTextField(
         manager, enabled, interactionSource, state, focusRequester, readOnly, offsetMapping
     )
 
-    val drawModifier =
-        Modifier.drawBehind {
-            state.layoutResult?.let { layoutResult ->
-                drawIntoCanvas { canvas ->
-                    TextFieldDelegate.draw(
-                        canvas,
-                        value,
-                        state.selectionPreviewHighlightRange,
-                        state.deletionPreviewHighlightRange,
-                        offsetMapping,
-                        layoutResult.value,
-                        state.highlightPaint,
-                        state.selectionBackgroundColor,
+    fun paragraphHashCode(offsetMapping: OffsetMapping, value: TextFieldValue, layoutResult: TextLayoutResult): Int {
+        var hashCode = layoutResult.hashCode()
+        if (!value.selection.collapsed) {
+            val start = offsetMapping.originalToTransformed(value.selection.min)
+            val end = offsetMapping.originalToTransformed(value.selection.max)
+            hashCode += 31 * hashCode + start
+            hashCode += 31 * hashCode + end
+        }
+        return hashCode
+    }
+
+    val drawModifier = Modifier.drawBehind {
+        state.layoutResult?.let { layoutResult ->
+            drawIntoCanvas { canvas ->
+                var currentParagraphHashCode = 0
+                if (drawInSkia || EnableIOSParagraph) {
+                    localCanvas = canvas
+                } else {
+                    currentParagraphHashCode = paragraphHashCode(offsetMapping, value, layoutResult.value)
+                    val width = layoutResult.value.size.width
+                    val height = layoutResult.value.size.height
+                    if (platformTextDelegate?.needRedrawText(canvas, currentParagraphHashCode, width, height) == false) return@drawBehind
+                    val newBitmap = ImageBitmap(width, height)
+                    localCanvas = Canvas(newBitmap)
+                    localBitmap = newBitmap
+                }
+                TextFieldDelegate.draw(
+                    canvas,
+                    value,
+                    state.selectionPreviewHighlightRange,
+                    state.deletionPreviewHighlightRange,
+                    offsetMapping,
+                    layoutResult.value,
+                    state.highlightPaint,
+                    state.selectionBackgroundColor,
+                )
+                if (!drawInSkia && !EnableIOSParagraph) {
+                    platformTextDelegate?.renderTextImage(
+                        localBitmap,
+                        layoutResult.value.size.width,
+                        layoutResult.value.size.height,
+                        currentParagraphHashCode,
+                        canvas
                     )
                 }
+
+                localBitmap = null
+                localCanvas = null
             }
         }
+    }
 
     val onPositionedModifier =
         Modifier.onGloballyPositioned {
